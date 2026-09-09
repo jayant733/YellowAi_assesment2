@@ -67,12 +67,40 @@ function applyGoldenFlow(order, weather) {
       condition,
       description
     );
-  } else {
-    order.status = order.status === "Delayed" ? "Delayed" : "Pending";
-    delete order.apology_message;
+    return { condition, description };
   }
 
+  order.status = "Pending";
+  delete order.apology_message;
   return { condition, description };
+}
+
+function applyWeatherError(order, error) {
+  order.status = "Pending";
+  order.weather_error = error.message;
+  delete order.apology_message;
+  delete order.weather;
+}
+
+async function processOrder(order, apiKey) {
+  try {
+    const weather = await fetchCityWeather(order.city, apiKey);
+    const { condition, description } = applyGoldenFlow(order, weather);
+    console.log(
+      `Order ${order.order_id} (${order.city}): ${condition} — ${description || "n/a"} [${order.status}]`
+    );
+    if (order.apology_message) {
+      console.log(`  Apology: ${order.apology_message}`);
+    }
+  } catch (error) {
+    applyWeatherError(order, error);
+    console.error(
+      `Order ${order.order_id}: could not fetch weather for "${order.city}". ${error.message}`
+    );
+    console.error("  Continuing with remaining orders...");
+  }
+
+  return order;
 }
 
 async function loadOrders() {
@@ -90,20 +118,8 @@ async function main() {
 
   console.log(`Fetching weather for ${orders.length} orders in parallel...`);
 
-  const weatherResults = await Promise.all(
-    orders.map((order) => fetchCityWeather(order.city, apiKey))
-  );
-
-  weatherResults.forEach((weather, index) => {
-    const order = orders[index];
-    const { condition, description } = applyGoldenFlow(order, weather);
-    console.log(
-      `Order ${order.order_id} (${order.city}): ${condition} — ${description || "n/a"} [${order.status}]`
-    );
-    if (order.apology_message) {
-      console.log(`  Apology: ${order.apology_message}`);
-    }
-  });
+  // Each order catches its own failures so Promise.all never rejects on InvalidCity123.
+  await Promise.all(orders.map((order) => processOrder(order, apiKey)));
 
   await saveOrders(orders);
   console.log(`Updated ${ORDERS_PATH}`);
