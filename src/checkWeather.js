@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ORDERS_PATH = path.join(__dirname, "..", "orders.json");
 const WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather";
+const DELAY_CONDITIONS = new Set(["Rain", "Snow", "Extreme"]);
 
 function getApiKey() {
   const apiKey = process.env.OPENWEATHERMAP_API_KEY;
@@ -15,6 +16,23 @@ function getApiKey() {
     );
   }
   return apiKey;
+}
+
+/**
+ * Weather-Aware Apology
+ * Turns a delay condition into a short, personal customer message.
+ */
+export function weatherAwareApology(customer, city, weatherMain, description) {
+  const firstName = String(customer).trim().split(/\s+/)[0] || "there";
+  const phrases = {
+    Rain: "heavy rain",
+    Snow: "snowfall",
+    Extreme: "extreme weather",
+  };
+  const weatherPhrase =
+    phrases[weatherMain] ?? (description ? description.toLowerCase() : "severe weather");
+
+  return `Hi ${firstName}, your order to ${city} is delayed due to ${weatherPhrase}. We appreciate your patience!`;
 }
 
 async function fetchCityWeather(city, apiKey) {
@@ -29,6 +47,32 @@ async function fetchCityWeather(city, apiKey) {
   }
 
   return response.json();
+}
+
+function applyGoldenFlow(order, weather) {
+  const condition = weather.weather?.[0]?.main ?? "Unknown";
+  const description = weather.weather?.[0]?.description ?? "";
+
+  order.weather = {
+    main: condition,
+    description,
+    temperature_c: weather.main?.temp ?? null,
+  };
+
+  if (DELAY_CONDITIONS.has(condition)) {
+    order.status = "Delayed";
+    order.apology_message = weatherAwareApology(
+      order.customer,
+      order.city,
+      condition,
+      description
+    );
+  } else {
+    order.status = order.status === "Delayed" ? "Delayed" : "Pending";
+    delete order.apology_message;
+  }
+
+  return { condition, description };
 }
 
 async function loadOrders() {
@@ -52,13 +96,17 @@ async function main() {
 
   weatherResults.forEach((weather, index) => {
     const order = orders[index];
-    const condition = weather.weather?.[0]?.main ?? "Unknown";
+    const { condition, description } = applyGoldenFlow(order, weather);
     console.log(
-      `Order ${order.order_id} (${order.city}): ${condition} — ${weather.weather?.[0]?.description ?? "n/a"}`
+      `Order ${order.order_id} (${order.city}): ${condition} — ${description || "n/a"} [${order.status}]`
     );
+    if (order.apology_message) {
+      console.log(`  Apology: ${order.apology_message}`);
+    }
   });
 
   await saveOrders(orders);
+  console.log(`Updated ${ORDERS_PATH}`);
 }
 
 main().catch((error) => {
