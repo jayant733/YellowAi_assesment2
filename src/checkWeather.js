@@ -125,7 +125,15 @@ async function main() {
   console.log(`Updated ${ORDERS_PATH}`);
 }
 
-main().catch((error) => {
-  console.error("Fatal error:", error.message);
-  process.exit(1);
-});
+function isDirectRun() {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  return path.normalize(fileURLToPath(import.meta.url)) === path.normalize(path.resolve(entry));
+}
+
+if (isDirectRun()) {
+  main().catch((error) => {
+    console.error("Fatal error:", error.message);
+    process.exit(1);
+  });
+}

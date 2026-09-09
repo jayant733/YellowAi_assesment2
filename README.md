@@ -15,9 +15,14 @@ cp .env.example .env
 ```bash
 npm install
 npm start
+npm test
 ```
 
 The script reads `orders.json`, fetches weather for every city **in parallel**, updates delayed orders, and writes the result back to `orders.json`.
+
+## Demo
+
+Record a terminal session of `npm start`. You should see concurrent fetches, a logged error for `InvalidCity123`, and delayed orders printed with a weather-aware apology.
 
 ## Golden-flow rules
 

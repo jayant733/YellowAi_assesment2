@@ -5,7 +5,8 @@
   "type": "module",
   "main": "src/checkWeather.js",
   "scripts": {
-    "start": "node src/checkWeather.js"
+    "start": "node src/checkWeather.js",
+    "test": "node --test src/apology.test.js"
   },
   "engines": {
     "node": ">=18"
