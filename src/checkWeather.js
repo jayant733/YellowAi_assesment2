@@ -53,6 +53,7 @@ function applyGoldenFlow(order, weather) {
   const condition = weather.weather?.[0]?.main ?? "Unknown";
   const description = weather.weather?.[0]?.description ?? "";
 
+  delete order.weather_error;
   order.weather = {
     main: condition,
     description,
