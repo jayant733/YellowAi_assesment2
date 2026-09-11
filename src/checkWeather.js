@@ -35,14 +35,23 @@ export function weatherAwareApology(customer, city, weatherMain, description) {
   return `Hi ${firstName}, your order to ${city} is delayed due to ${weatherPhrase}. We appreciate your patience!`;
 }
 
+class WeatherApiError extends Error {
+  constructor(message, { status, city } = {}) {
+    super(message);
+    this.status = status;
+    this.city = city;
+  }
+}
+
 async function fetchCityWeather(city, apiKey) {
   const url = `${WEATHER_URL}?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric`;
   const response = await fetch(url);
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(
-      `OpenWeatherMap request failed for "${city}" (${response.status}): ${body}`
+    throw new WeatherApiError(
+      `OpenWeatherMap request failed for "${city}" (${response.status}): ${body}`,
+      { status: response.status, city }
     );
   }
 
@@ -94,6 +103,10 @@ async function processOrder(order, apiKey) {
       console.log(`  Apology: ${order.apology_message}`);
     }
   } catch (error) {
+    if (error.status === 401) {
+      throw error;
+    }
+
     applyWeatherError(order, error);
     console.error(
       `Order ${order.order_id}: could not fetch weather for "${order.city}". ${error.message}`
@@ -134,6 +147,11 @@ function isDirectRun() {
 
 if (isDirectRun()) {
   main().catch((error) => {
+    if (error.status === 401) {
+      console.error(
+        "OpenWeatherMap rejected the API key (401). Confirm the key in .env, then wait up to 2 hours if it was just created."
+      );
+    }
     console.error("Fatal error:", error.message);
     process.exit(1);
   });

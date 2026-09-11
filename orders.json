@@ -3,24 +3,40 @@
     "order_id": "1001",
     "customer": "Alice Smith",
     "city": "New York",
-    "status": "Pending"
+    "status": "Pending",
+    "weather": {
+      "main": "Clouds",
+      "description": "overcast clouds",
+      "temperature_c": 22.06
+    }
   },
   {
     "order_id": "1002",
     "customer": "Bob Jones",
     "city": "Mumbai",
-    "status": "Pending"
+    "status": "Pending",
+    "weather": {
+      "main": "Clouds",
+      "description": "overcast clouds",
+      "temperature_c": 29.99
+    }
   },
   {
     "order_id": "1003",
     "customer": "Charlie Green",
     "city": "London",
-    "status": "Pending"
+    "status": "Pending",
+    "weather": {
+      "main": "Clouds",
+      "description": "overcast clouds",
+      "temperature_c": 20.66
+    }
   },
   {
     "order_id": "1004",
     "customer": "InvalidCity123",
     "city": "InvalidCity123",
-    "status": "Pending"
+    "status": "Pending",
+    "weather_error": "OpenWeatherMap request failed for \"InvalidCity123\" (404): {\"cod\":\"404\",\"message\":\"city not found\"}"
   }
 ]
